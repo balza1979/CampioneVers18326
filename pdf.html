@@ -42,6 +42,7 @@ h1 {
   max-width: 1100px;
   margin: 0 auto 40px auto;
   text-align: center;
+  position: relative;
 }
 
 #viewer-container {
@@ -62,6 +63,16 @@ h1 {
   max-height: 70vh;
   object-fit: contain;
   display: none;
+}
+
+/* ------------------ FULLSCREEN BUTTON ------------------ */
+#fullscreen-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 42px;
+  cursor: pointer;
+  z-index: 20;
 }
 
 /* ------------------ MUTE ICON ------------------ */
@@ -97,19 +108,25 @@ h1 {
 
 /* ------------------ SLIDESHOW BUTTON ------------------ */
 #slideshow-btn {
-  margin-top: 15px;
-  font-size: 32px;
+  margin-top: 25px;
+  font-size: 90px;
   cursor: pointer;
 }
 
-/* ------------------ FADE EFFECT ------------------ */
-.fade {
-  animation: fadeIn 0.6s ease;
+/* ------------------ SLIDER VELOCITÀ ------------------ */
+#speed-control {
+  margin-top: 20px;
+  width: 60%;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+/* ------------------ EFFETTO BOLLA + FADE ------------------ */
+.bubble {
+  animation: bubbleZoom 2s ease forwards;
+}
+
+@keyframes bubbleZoom {
+  0%   { opacity: 0; transform: scale(0.4); }
+  100% { opacity: 1; transform: scale(1); }
 }
 
 /* ------------------ CARD SOTTO ------------------ */
@@ -164,6 +181,7 @@ h1 {
 <div id="big-gallery">
 
     <div id="viewer-container">
+        <div id="fullscreen-btn">⛶</div>
         <img id="big-image" src="">
         <video id="big-video" controls muted></video>
     </div>
@@ -176,6 +194,8 @@ h1 {
     </div>
 
     <div id="slideshow-btn">▶️</div>
+
+    <input id="speed-control" type="range" min="1" max="5" value="2">
 
     <div id="counter">0 / 0</div>
 </div>
@@ -190,8 +210,13 @@ const cartella = params.get("cartella");
 document.getElementById("titolo").innerHTML =
     "File in: " + cartella + "<br>Galleria + PDF/Immagini/Video";
 
-let gallery = [];     // immagini + video
-let currentIndex = 0; // parte dal video se presente
+let gallery = [];
+let currentIndex = 0;
+
+let slideshowActive = false;
+let slideshowTimer = null;
+let baseDelay = 2000; // pausa 2 secondi
+let transitionTime = 2000; // transizione 2 secondi
 
 fetch("elenco.json")
   .then(r => r.json())
@@ -200,7 +225,6 @@ fetch("elenco.json")
     const container = document.getElementById("pdf-container");
 
     const imageExt = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
-
     let videoFound = null;
 
     files.forEach(file => {
@@ -214,15 +238,9 @@ fetch("elenco.json")
       const isImage = imageExt.some(ext => file.toLowerCase().endsWith(ext));
       const isVideo = file.toLowerCase().endsWith(".mp4");
 
-      /* ---- COSTRUZIONE GALLERIA ---- */
-      if (isVideo) {
-        videoFound = { type: "video", url: directUrl };
-      }
-      if (isImage) {
-        gallery.push({ type: "image", url: directUrl });
-      }
+      if (isVideo) videoFound = { type: "video", url: directUrl };
+      if (isImage) gallery.push({ type: "image", url: directUrl });
 
-      /* ---- CARD SOTTO ---- */
       const card = document.createElement("div");
       card.className = "card";
 
@@ -232,13 +250,9 @@ fetch("elenco.json")
       else previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg">`;
 
       let buttons = "";
-      if (isPdf) {
-        buttons = `<button onclick="window.open('${directUrl}')">Vedi/Scarica</button>`;
-      } else if (isImage) {
-        buttons = `<button onclick="window.open('${directUrl}')">Apri Immagine</button>`;
-      } else if (isVideo) {
-        buttons = `<button onclick="window.open('${directUrl}')">Apri Video</button>`;
-      }
+      if (isPdf) buttons = `<button onclick="window.open('${directUrl}')">Vedi/Scarica</button>`;
+      else if (isImage) buttons = `<button onclick="window.open('${directUrl}')">Apri Immagine</button>`;
+      else if (isVideo) buttons = `<button onclick="window.open('${directUrl}')">Apri Video</button>`;
 
       card.innerHTML = `
         ${previewHtml}
@@ -249,7 +263,6 @@ fetch("elenco.json")
       container.appendChild(card);
     });
 
-    /* ---- VIDEO COME ELEMENTO 0 ---- */
     if (videoFound) gallery.unshift(videoFound);
 
     showItem(0);
@@ -268,20 +281,20 @@ function showItem(index) {
   vid.style.display = "none";
   muteBtn.style.display = "none";
 
-  img.classList.remove("fade");
-  vid.classList.remove("fade");
+  img.classList.remove("bubble");
+  vid.classList.remove("bubble");
 
   if (item.type === "image") {
     img.src = item.url;
     img.style.display = "block";
-    img.classList.add("fade");
+    img.classList.add("bubble");
   } else {
     vid.src = item.url;
     vid.currentTime = 0;
     vid.muted = true;
     vid.play();
     vid.style.display = "block";
-    vid.classList.add("fade");
+    vid.classList.add("bubble");
     muteBtn.style.display = "block";
     muteBtn.textContent = "🔇";
   }
@@ -293,14 +306,16 @@ function showItem(index) {
 /* ------------------ NAVIGAZIONE ------------------ */
 function goPrev() {
   stopSlideshow();
-  currentIndex = (currentIndex - 1 + gallery.length) % gallery.length;
+  currentIndex = Math.max(0, currentIndex - 1);
   showItem(currentIndex);
 }
 
 function goNext() {
   stopSlideshow();
-  currentIndex = (currentIndex + 1) % gallery.length;
-  showItem(currentIndex);
+  if (currentIndex < gallery.length - 1) {
+    currentIndex++;
+    showItem(currentIndex);
+  }
 }
 
 document.getElementById("prev-btn").onclick = goPrev;
@@ -314,31 +329,30 @@ document.getElementById("mute-btn").onclick = () => {
 };
 
 /* ------------------ SLIDESHOW ------------------ */
-let slideshowActive = false;
-let slideshowTimer = null;
-
 function startSlideshow() {
   slideshowActive = true;
   document.getElementById("slideshow-btn").textContent = "⏸️";
 
+  let speedFactor = document.getElementById("speed-control").value;
+  let delay = baseDelay * speedFactor;
+
   slideshowTimer = setInterval(() => {
 
-    // salta il video (index 0)
     if (currentIndex === 0) {
       currentIndex = 1;
       showItem(currentIndex);
       return;
     }
 
-    // avanza normalmente
-    currentIndex = (currentIndex + 1) % gallery.length;
+    if (currentIndex < gallery.length - 1) {
+      currentIndex++;
+      showItem(currentIndex);
+    } else {
+      stopSlideshow();
+    }
 
-    // se torna al video → salta
-    if (currentIndex === 0) currentIndex = 1;
+  }, delay + transitionTime);
 
-    showItem(currentIndex);
-
-  }, 3500);
 }
 
 function stopSlideshow() {
@@ -350,6 +364,13 @@ function stopSlideshow() {
 document.getElementById("slideshow-btn").onclick = () => {
   if (slideshowActive) stopSlideshow();
   else startSlideshow();
+};
+
+/* ------------------ FULLSCREEN ------------------ */
+document.getElementById("fullscreen-btn").onclick = () => {
+  const elem = document.getElementById("big-gallery");
+  if (!document.fullscreenElement) elem.requestFullscreen();
+  else document.exitFullscreen();
 };
 </script>
 
