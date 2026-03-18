@@ -95,6 +95,23 @@ h1 {
   color: #ccc;
 }
 
+/* ------------------ SLIDESHOW BUTTON ------------------ */
+#slideshow-btn {
+  margin-top: 15px;
+  font-size: 32px;
+  cursor: pointer;
+}
+
+/* ------------------ FADE EFFECT ------------------ */
+.fade {
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 /* ------------------ CARD SOTTO ------------------ */
 .card {
   background: grey;
@@ -157,6 +174,8 @@ h1 {
         <span id="prev-btn">⬅️</span>
         <span id="next-btn">➡️</span>
     </div>
+
+    <div id="slideshow-btn">▶️</div>
 
     <div id="counter">0 / 0</div>
 </div>
@@ -249,15 +268,20 @@ function showItem(index) {
   vid.style.display = "none";
   muteBtn.style.display = "none";
 
+  img.classList.remove("fade");
+  vid.classList.remove("fade");
+
   if (item.type === "image") {
     img.src = item.url;
     img.style.display = "block";
+    img.classList.add("fade");
   } else {
     vid.src = item.url;
     vid.currentTime = 0;
     vid.muted = true;
     vid.play();
     vid.style.display = "block";
+    vid.classList.add("fade");
     muteBtn.style.display = "block";
     muteBtn.textContent = "🔇";
   }
@@ -267,21 +291,65 @@ function showItem(index) {
 }
 
 /* ------------------ NAVIGAZIONE ------------------ */
-document.getElementById("prev-btn").onclick = () => {
+function goPrev() {
+  stopSlideshow();
   currentIndex = (currentIndex - 1 + gallery.length) % gallery.length;
   showItem(currentIndex);
-};
+}
 
-document.getElementById("next-btn").onclick = () => {
+function goNext() {
+  stopSlideshow();
   currentIndex = (currentIndex + 1) % gallery.length;
   showItem(currentIndex);
-};
+}
+
+document.getElementById("prev-btn").onclick = goPrev;
+document.getElementById("next-btn").onclick = goNext;
 
 /* ------------------ MUTE ------------------ */
 document.getElementById("mute-btn").onclick = () => {
   const vid = document.getElementById("big-video");
   vid.muted = !vid.muted;
   document.getElementById("mute-btn").textContent = vid.muted ? "🔇" : "🔊";
+};
+
+/* ------------------ SLIDESHOW ------------------ */
+let slideshowActive = false;
+let slideshowTimer = null;
+
+function startSlideshow() {
+  slideshowActive = true;
+  document.getElementById("slideshow-btn").textContent = "⏸️";
+
+  slideshowTimer = setInterval(() => {
+
+    // salta il video (index 0)
+    if (currentIndex === 0) {
+      currentIndex = 1;
+      showItem(currentIndex);
+      return;
+    }
+
+    // avanza normalmente
+    currentIndex = (currentIndex + 1) % gallery.length;
+
+    // se torna al video → salta
+    if (currentIndex === 0) currentIndex = 1;
+
+    showItem(currentIndex);
+
+  }, 3500);
+}
+
+function stopSlideshow() {
+  slideshowActive = false;
+  document.getElementById("slideshow-btn").textContent = "▶️";
+  clearInterval(slideshowTimer);
+}
+
+document.getElementById("slideshow-btn").onclick = () => {
+  if (slideshowActive) stopSlideshow();
+  else startSlideshow();
 };
 </script>
 
