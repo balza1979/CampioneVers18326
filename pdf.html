@@ -1,3 +1,5 @@
+</body>
+</html>
 <!DOCTYPE html>
 <html lang="it">
 <head>
@@ -287,6 +289,7 @@ function showItem(index) {
   if (item.type === "image") {
     img.src = item.url;
     img.style.display = "block";
+    void img.offsetWidth;
     img.classList.add("bubble");
   } else {
     vid.src = item.url;
@@ -294,6 +297,7 @@ function showItem(index) {
     vid.muted = true;
     vid.play();
     vid.style.display = "block";
+    void vid.offsetWidth;
     vid.classList.add("bubble");
     muteBtn.style.display = "block";
     muteBtn.textContent = "🔇";
@@ -349,6 +353,8 @@ function startSlideshow() {
       showItem(currentIndex);
     } else {
       stopSlideshow();
+      currentIndex = 1;
+      showItem(currentIndex);
     }
 
   }, delay + transitionTime);
