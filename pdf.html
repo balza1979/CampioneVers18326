@@ -155,7 +155,7 @@ h1 {
 
 <h1 id="titolo"></h1>
 
-<!-- 🔥 GALLERIA GRANDE (ORA IN ALTO) -->
+<!-- 🔥 GALLERIA GRANDE -->
 <div id="big-gallery" style="display:none; text-align:center; margin-top:40px;">
     <img id="big-image" src="" onclick="zoomImage()"
          style="max-width:90%; max-height:500px; border:4px solid white; border-radius:10px; cursor:pointer;">
@@ -169,7 +169,6 @@ h1 {
     </div>
 </div>
 
-<!-- 🔥 SOTTO LA GALLERIA CI SONO PDF E IMMAGINI -->
 <div id="pdf-container"></div>
 
 <!-- 🔥 OVERLAY PER ZOOM -->
@@ -212,6 +211,7 @@ fetch("elenco.json")
 
       const isPdf = file.toLowerCase().endsWith(".pdf");
       const isImage = imageExt.some(ext => file.toLowerCase().endsWith(ext));
+      const isVideo = file.toLowerCase().endsWith(".mp4");
 
       if (isImage) {
         imageList.push(directUrl);
@@ -222,11 +222,13 @@ fetch("elenco.json")
       const card = document.createElement("div");
       card.className = "card";
 
-      const icon = isPdf ? "📄" : "🖼️";
+      const icon = isPdf ? "📄" : isVideo ? "🎬" : "🖼️";
 
       let previewHtml = "";
       if (isImage) {
         previewHtml = `<img class="preview" src="${directUrl}" alt="preview">`;
+      } else if (isVideo) {
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png">`;
       } else {
         previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg">`;
       }
@@ -240,6 +242,10 @@ fetch("elenco.json")
       } else if (isImage) {
         buttons = `
           <button onclick="openFast('${directUrl}')">Apri Immagine</button>
+        `;
+      } else if (isVideo) {
+        buttons = `
+          <button onclick="openFast('${directUrl}')">Apri Video</button>
         `;
       }
 
