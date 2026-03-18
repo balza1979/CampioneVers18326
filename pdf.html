@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>File della Cartella</title>
+
+<style>
+body {
+  font-family: Arial;
+  background-size: cover;
+  background: black;
+  background-position: center top;
+  background-repeat: no-repeat;
+  padding: 40px;
+}
+
+h1 {
+  text-align: center;
+  color: red; 
+  font-weight: bold;
+  font-size: 26px;
+}
+
+.back-button {
+    position: fixed;
+    top: 15px;
+    right: 15px;
+    background-color: #0275d8;
+    color: white;
+    padding: 20px 28px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    transition: background-color 0.2s ease;
+    z-index: 999;
+    font-size: 26px;
+}
+
+.back-button:hover {
+    background-color: #025aa5;
+}
+
+.card {
+  background: grey;
+  padding: 20px;
+  margin: 15px auto;
+  max-width: 850px;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+}
+
+.card-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: black;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.preview {
+  width: 120px;
+  height: 120px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid black;
+  background: white;
+}
+
+.button-column {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.card button {
+  background: green;
+  color: white;
+  border: none;
+  padding: 16px 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 22px;
+  font-weight: 700;
+  width: 220px;
+}
+
+.card button:hover {
+  background: #0056b3;
+}
+
+#loadingPopup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 30px 50px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  font-size: 28px;
+  font-weight: bold;
+  display: none;
+  z-index: 2000;
+  text-align: center;
+}
+
+#loadingPopup span {
+  display: block;
+  margin-top: 15px;
+  font-size: 22px;
+  font-weight: normal;
+}
+
+#testFrame {
+  display: none;
+}
+
+/* 🔥 ZOOM FULLSCREEN */
+#zoom-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.85);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 5000;
+}
+
+#zoom-overlay img {
+  max-width: 95%;
+  max-height: 95%;
+  border-radius: 10px;
+  box-shadow: 0 0 20px black;
+  animation: zoomIn 0.25s ease-out;
+}
+
+@keyframes zoomIn {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+</style>
+</head>
+
+<body>
+
+<a class="back-button" href="index.html">⬅ Torna Indietro</a>
+
+<h1 id="titolo"></h1>
+
+<!-- 🔥 GALLERIA GRANDE (ORA IN ALTO) -->
+<div id="big-gallery" style="display:none; text-align:center; margin-top:40px;">
+    <img id="big-image" src="" onclick="zoomImage()"
+         style="max-width:90%; max-height:500px; border:4px solid white; border-radius:10px; cursor:pointer;">
+    
+    <div style="margin-top:20px;">
+        <button onclick="prevImage()" 
+                style="padding:15px 25px; font-size:22px; margin-right:20px;">⬅ Indietro</button>
+
+        <button onclick="nextImage()" 
+                style="padding:15px 25px; font-size:22px;">Avanti ➡</button>
+    </div>
+</div>
+
+<!-- 🔥 SOTTO LA GALLERIA CI SONO PDF E IMMAGINI -->
+<div id="pdf-container"></div>
+
+<!-- 🔥 OVERLAY PER ZOOM -->
+<div id="zoom-overlay" onclick="closeZoom()">
+    <img id="zoom-img" src="">
+</div>
+
+<div id="loadingPopup">
+  ⏳ Caricamento del documento...
+  <span id="loadingSub">Attendere qualche secondo</span>
+</div>
+
+<iframe id="testFrame"></iframe>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const cartella = params.get("cartella");
+
+document.getElementById("titolo").innerHTML =
+    "File in: " + cartella + "<br>" +
+    "PDF e Immagini con anteprima";
+
+let imageList = [];     
+let currentIndex = 0;   
+
+fetch("elenco.json")
+  .then(r => r.json())
+  .then(data => {
+    const files = data[cartella];
+    const container = document.getElementById("pdf-container");
+
+    const imageExt = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+
+    files.forEach(file => {
+      const encodedName = encodeURIComponent(file);
+      const encodedFolder = encodeURIComponent(cartella);
+
+      const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
+      const directUrl = `${base}pdf/${encodedFolder}/${encodedName}`;
+
+      const isPdf = file.toLowerCase().endsWith(".pdf");
+      const isImage = imageExt.some(ext => file.toLowerCase().endsWith(ext));
+
+      if (isImage) {
+        imageList.push(directUrl);
+      }
+
+      const gviewUrl = `https://docs.google.com/gview?embedded=1&url=${directUrl}`;
+
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const icon = isPdf ? "📄" : "🖼️";
+
+      let previewHtml = "";
+      if (isImage) {
+        previewHtml = `<img class="preview" src="${directUrl}" alt="preview">`;
+      } else {
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg">`;
+      }
+
+      let buttons = "";
+      if (isPdf) {
+        buttons = `
+          <button onclick="openFast('${directUrl}')">Vedi/Scarica</button>
+          <button onclick="openSafe('${directUrl}', '${gviewUrl}')">Vedi Online</button>
+        `;
+      } else if (isImage) {
+        buttons = `
+          <button onclick="openFast('${directUrl}')">Apri Immagine</button>
+        `;
+      }
+
+      card.innerHTML = `
+        ${previewHtml}
+        <div class="card-title">${icon} ${file}</div>
+        <div class="button-column">${buttons}</div>
+      `;
+
+      container.appendChild(card);
+    });
+
+    if (imageList.length > 0) {
+      document.getElementById("big-gallery").style.display = "block";
+      showImage(0);
+    }
+  });
+
+function showImage(index) {
+  currentIndex = index;
+  document.getElementById("big-image").src = imageList[currentIndex];
+}
+
+function nextImage() {
+  currentIndex = (currentIndex + 1) % imageList.length;
+  showImage(currentIndex);
+}
+
+function prevImage() {
+  currentIndex = (currentIndex - 1 + imageList.length) % imageList.length;
+  showImage(currentIndex);
+}
+
+/* 🔥 ZOOM FULLSCREEN */
+function zoomImage() {
+  const src = document.getElementById("big-image").src;
+  document.getElementById("zoom-img").src = src;
+  document.getElementById("zoom-overlay").style.display = "flex";
+}
+
+function closeZoom() {
+  document.getElementById("zoom-overlay").style.display = "none";
+}
+
+function openFast(url) {
+  window.open(url, "_blank");
+}
+
+function openSafe(directUrl, gviewUrl) {
+  const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
+  const newTab = window.open(base + "loading.html", "_blank");
+
+  if (!newTab) return;
+
+  showLoading(true, "Caricamento del documento...", "Attendere qualche secondo");
+
+  const frame = document.getElementById("testFrame");
+  frame.src = directUrl;
+
+  setTimeout(() => {
+    let loaded = false;
+
+    try {
+      loaded = frame.contentWindow.location.href !== "about:blank";
+    } catch (e) {
+      loaded = false;
+    }
+
+    showLoading(false);
+
+    if (loaded) {
+      newTab.location.href = directUrl;
+    } else {
+      newTab.location.href = gviewUrl;
+    }
+
+  }, 5000);
+}
+
+function showLoading(show, title = "", subtitle = "") {
+  const popup = document.getElementById("loadingPopup");
+  const sub = document.getElementById("loadingSub");
+
+  popup.style.display = show ? "block" : "none";
+  if (title) popup.childNodes[0].textContent = "⏳ " + title;
+  if (subtitle) sub.textContent = subtitle;
+}
+</script>
+
+</body>
+</html>
