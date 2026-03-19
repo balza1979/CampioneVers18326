@@ -272,7 +272,6 @@ document.getElementById("titolo").innerHTML =
 
 let gallery = [];
 let currentIndex = 0;
-let firstImageIndex = 0;
 
 /* ---------------------------------------------------------
    🔥 APERTURA VELOCE (PDF, IMMAGINI, VIDEO)
@@ -339,7 +338,7 @@ fetch("elenco.json")
     const imageExt = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
     let videoFound = null;
 
-    files.forEach(file => {
+    files.forEach((file, index) => {
       const encodedName = encodeURIComponent(file);
       const encodedFolder = encodeURIComponent(cartella);
 
@@ -359,9 +358,9 @@ fetch("elenco.json")
 
       let previewHtml = "";
       if (isImage)
-        previewHtml = `<img class="preview" src="${directUrl}" onclick="openFast('${directUrl}')">`;
+        previewHtml = `<img class="preview" src="${directUrl}" onclick="showItem(${gallery.length - 1})">`;
       else if (isVideo)
-        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png">`;
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png" onclick="showItem(${gallery.length})">`;
       else
         previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg">`;
 
@@ -369,7 +368,7 @@ fetch("elenco.json")
       let buttons = "";
 
       if (isImage) {
-        buttons = `<button onclick="openFast('${directUrl}')">Apri Immagine</button>`;
+        buttons = `<button onclick="showItem(${gallery.length - 1})">Apri Immagine</button>`;
       }
       else if (isPdf) {
         buttons = `
@@ -378,7 +377,7 @@ fetch("elenco.json")
         `;
       }
       else if (isVideo) {
-        buttons = `<button onclick="openFast('${directUrl}')">Apri</button>`;
+        buttons = `<button onclick="showItem(${gallery.length})">Apri Video</button>`;
       }
 
       card.innerHTML = `
@@ -392,9 +391,7 @@ fetch("elenco.json")
 
     if (videoFound) gallery.unshift(videoFound);
 
-    firstImageIndex = (gallery[0].type === "video") ? 1 : 0;
-
-    showItem(0, false);
+    showItem(0);
   });
 
 /* ------------------ MOSTRA ELEMENTO ------------------ */
@@ -423,7 +420,7 @@ function showItem(index) {
   }
 
   document.getElementById("counter").textContent =
-      `${index} / ${gallery.length - 1}`;
+      `${index + 1} / ${gallery.length}`;
 }
 
 /* ------------------ NAVIGAZIONE ------------------ */
@@ -447,6 +444,30 @@ document.getElementById("fullscreen-btn").onclick = () => {
   const elem = document.getElementById("big-gallery");
   if (!document.fullscreenElement) elem.requestFullscreen();
   else document.exitFullscreen();
+};
+
+/* ------------------ SLIDESHOW ------------------ */
+let slideshowInterval = null;
+
+document.getElementById("slideshow-btn").onclick = () => {
+  if (slideshowInterval) {
+    clearInterval(slideshowInterval);
+    slideshowInterval = null;
+    document.getElementById("slideshow-btn").textContent = "▶️";
+    return;
+  }
+
+  document.getElementById("slideshow-btn").textContent = "⏸️";
+
+  const speed = document.getElementById("speed-control").value * 1000;
+
+  slideshowInterval = setInterval(() => {
+    if (currentIndex < gallery.length - 1) {
+      showItem(++currentIndex);
+    } else {
+      showItem(0);
+    }
+  }, speed);
 };
 </script>
 
