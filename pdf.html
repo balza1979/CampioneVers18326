@@ -272,7 +272,7 @@ fetch("elenco.json")
 
     firstImageIndex = (gallery[0].type === "video") ? 1 : 0;
 
-    showItem(firstImageIndex, false);
+    showItem(0, false); // se c’è video → mostra video, se no → prima immagine
   });
 
 /* ------------------ MOSTRA ELEMENTO ------------------ */
