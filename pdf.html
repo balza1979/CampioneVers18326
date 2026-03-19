@@ -109,7 +109,7 @@ h1 {
   padding-right: 20px;
 }
 
-/* ------------------ FRECCE + PLAY (L4) ------------------ */
+/* ------------------ FRECCE + PLAY ------------------ */
 #command-row {
   display: flex;
   justify-content: center;
@@ -141,16 +141,6 @@ h1 {
 #speed-control {
   margin-top: 5px;
   width: 50%;
-}
-
-/* ------------------ EFFETTO BOLLA ------------------ */
-.bubble {
-  animation: bubbleZoom 2s cubic-bezier(.34,1.56,.64,1) forwards;
-}
-
-@keyframes bubbleZoom {
-  0%   { opacity: 0; transform: scale(0.3); }
-  100% { opacity: 1; transform: scale(1); }
 }
 
 /* ------------------ CARD ------------------ */
@@ -199,54 +189,35 @@ h1 {
   background: #0a0;
 }
 
-/* ------------------ LOADER OVERLAY (LDR-A) ------------------ */
-#loader-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0,0,0,0.75);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
-  z-index: 99999;
-}
-
-.loader-circle {
-  border: 8px solid #444;
-  border-top: 8px solid #fff;
-  border-radius: 50%;
-  width: 70px;
-  height: 70px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.loader-text {
-  margin-top: 20px;
-  font-size: 22px;
-  color: white;
-}
-
-/* ------------------ ERRORE (ERR-A) ------------------ */
-#error-box {
+/* ------------------ POPUP CARICAMENTO ------------------ */
+#loadingPopup {
   position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: #900;
-  padding: 20px 30px;
-  border-radius: 10px;
-  color: white;
-  font-size: 22px;
+  background: white;
+  padding: 30px 50px;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+  font-size: 28px;
+  font-weight: bold;
   display: none;
-  z-index: 100000;
+  z-index: 2000;
+  text-align: center;
+  color: black;
+}
+
+#loadingPopup span {
+  display: block;
+  margin-top: 15px;
+  font-size: 22px;
+  font-weight: normal;
+  color: black;
+}
+
+/* Iframe invisibile */
+#testFrame {
+  display: none;
 }
 </style>
 </head>
@@ -256,15 +227,6 @@ h1 {
 <a class="back-button" href="index.html">⬅ Torna Indietro</a>
 
 <h1 id="titolo"></h1>
-
-<!-- LOADER OVERLAY -->
-<div id="loader-overlay">
-  <div class="loader-circle"></div>
-  <div class="loader-text">Caricamento in corso…</div>
-</div>
-
-<!-- ERRORE -->
-<div id="error-box">Caricamento non riuscito. Riprovare.</div>
 
 <!-- ------------------ BLOCCO ALTO ------------------ -->
 <div id="big-gallery">
@@ -292,6 +254,15 @@ h1 {
 <div id="pdf-container"></div>
 <div id="bottom-spacer"></div>
 
+<!-- POPUP CARICAMENTO -->
+<div id="loadingPopup">
+  ⏳ Caricamento del documento...
+  <span id="loadingSub">Attendere qualche secondo</span>
+</div>
+
+<!-- IFRAME INVISIBILE -->
+<iframe id="testFrame"></iframe>
+
 <script>
 const params = new URLSearchParams(window.location.search);
 const cartella = params.get("cartella");
@@ -303,32 +274,62 @@ let gallery = [];
 let currentIndex = 0;
 let firstImageIndex = 0;
 
-let slideshowActive = false;
-let slideshowTimer = null;
-
-let transitionTime = 2000;
-
-function getPause() {
-  return document.getElementById("speed-control").value * 500;
+/* ---------------------------------------------------------
+   🔥 APERTURA VELOCE (PDF, IMMAGINI, VIDEO)
+--------------------------------------------------------- */
+function openFast(url) {
+  window.open(url, "_blank");
 }
 
-/* ------------------ LOADER ------------------ */
-function showLoader() {
-  document.getElementById("loader-overlay").style.display = "flex";
+/* ---------------------------------------------------------
+   🔥 APERTURA SICURA PDF (LOGICA ORIGINALE)
+--------------------------------------------------------- */
+function openSafe(directUrl, gviewUrl) {
+  const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
+  const newTab = window.open(base + "loading.html", "_blank");
+
+  if (!newTab) return;
+
+  showLoading(true, "Caricamento del documento...", "Attendere qualche secondo");
+
+  const frame = document.getElementById("testFrame");
+  frame.src = directUrl;
+
+  setTimeout(() => {
+    let loaded = false;
+
+    try {
+      loaded = frame.contentWindow.location.href !== "about:blank";
+    } catch (e) {
+      loaded = false;
+    }
+
+    showLoading(false);
+
+    if (loaded) {
+      newTab.location.href = directUrl;
+    } else {
+      newTab.location.href = gviewUrl;
+    }
+
+  }, 5000);
 }
 
-function hideLoader() {
-  document.getElementById("loader-overlay").style.display = "none";
+/* ---------------------------------------------------------
+   🔥 POPUP CARICAMENTO
+--------------------------------------------------------- */
+function showLoading(show, title = "", subtitle = "") {
+  const popup = document.getElementById("loadingPopup");
+  const sub = document.getElementById("loadingSub");
+
+  popup.style.display = show ? "block" : "none";
+  if (title) popup.childNodes[0].textContent = "⏳ " + title;
+  if (subtitle) sub.textContent = subtitle;
 }
 
-/* ------------------ ERRORE ------------------ */
-function showError() {
-  const box = document.getElementById("error-box");
-  box.style.display = "block";
-  setTimeout(() => box.style.display = "none", 3000);
-}
-
-/* ------------------ FETCH FILES ------------------ */
+/* ---------------------------------------------------------
+   🔥 CARICAMENTO FILES
+--------------------------------------------------------- */
 fetch("elenco.json")
   .then(r => r.json())
   .then(data => {
@@ -344,6 +345,7 @@ fetch("elenco.json")
 
       const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
       const directUrl = `${base}pdf/${encodedFolder}/${encodedName}`;
+      const gviewUrl = `https://docs.google.com/gview?embedded=1&url=${directUrl}`;
 
       const isPdf = file.toLowerCase().endsWith(".pdf");
       const isImage = imageExt.some(ext => file.toLowerCase().endsWith(ext));
@@ -357,26 +359,26 @@ fetch("elenco.json")
 
       let previewHtml = "";
       if (isImage)
-        previewHtml = `<img class="preview" src="${directUrl}" onclick="openFromThumbnail('${directUrl}')">`;
+        previewHtml = `<img class="preview" src="${directUrl}" onclick="openFast('${directUrl}')">`;
       else if (isVideo)
-        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png" onclick="openFromThumbnail('${directUrl}')">`;
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png">`;
       else
-        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" onclick="openFromThumbnail('${directUrl}')">`;
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg">`;
 
-      /* ------------------ PULSANTI PER TIPO ------------------ */
+      /* ------------------ PULSANTI ------------------ */
       let buttons = "";
 
       if (isImage) {
-        buttons = `<button onclick="window.open('${directUrl}')">Visualizza immagine</button>`;
+        buttons = `<button onclick="openFast('${directUrl}')">Apri Immagine</button>`;
       }
       else if (isPdf) {
         buttons = `
-          <button onclick="window.location.href='${directUrl}'">Apri / Scarica</button>
-          <button onclick="openPdfSafe('${directUrl}')">Vedi Online</button>
+          <button onclick="openFast('${directUrl}')">Apri / Scarica</button>
+          <button onclick="openSafe('${directUrl}', '${gviewUrl}')">Vedi Online</button>
         `;
       }
       else if (isVideo) {
-        buttons = `<button onclick="openVideo('${directUrl}')">Apri</button>`;
+        buttons = `<button onclick="openFast('${directUrl}')">Apri</button>`;
       }
 
       card.innerHTML = `
@@ -395,65 +397,8 @@ fetch("elenco.json")
     showItem(0, false);
   });
 
-/* ------------------ VIDEO APERTURA IMMEDIATA ------------------ */
-function openVideo(url) {
-  window.location.href = url;
-}
-
-/* ------------------ PDF VIEWER SICURO COMPLETO ------------------ */
-function openPdfSafe(url) {
-
-  showLoader();
-
-  let opened = false;
-
-  // 1) Primo tentativo immediato
-  try {
-    const win = window.open(url, "_blank");
-    if (win) opened = true;
-  } catch(e){}
-
-  // 2) Dopo 7 secondi → secondo tentativo
-  setTimeout(() => {
-    if (!opened) {
-      try {
-        window.location.href = url;
-        opened = true;
-      } catch(e){}
-    }
-  }, 7000);
-
-  // 3) Dopo 9 secondi → iframe invisibile
-  setTimeout(() => {
-    if (!opened) {
-      try {
-        const iframe = document.createElement("iframe");
-        iframe.style.display = "none";
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        opened = true;
-      } catch(e){}
-    }
-  }, 9000);
-
-  // 4) Dopo 11 secondi → errore
-  setTimeout(() => {
-    hideLoader();
-    if (!opened) showError();
-  }, 11000);
-}
-
-/* ------------------ MINIATURA → VIEWER ------------------ */
-function openFromThumbnail(url) {
-  const index = gallery.findIndex(item => item.url === url);
-  if (index !== -1) {
-    stopSlideshow();
-    showItem(index, false);
-  }
-}
-
 /* ------------------ MOSTRA ELEMENTO ------------------ */
-function showItem(index, animate = false) {
+function showItem(index) {
   currentIndex = index;
 
   const item = gallery[index];
@@ -465,34 +410,16 @@ function showItem(index, animate = false) {
   vid.style.display = "none";
   muteBtn.style.display = "none";
 
-  img.classList.remove("bubble");
-  vid.classList.remove("bubble");
-
   if (item.type === "image") {
     img.src = item.url;
     img.style.display = "block";
-
-    if (animate) {
-      img.classList.remove("bubble");
-      void img.offsetWidth;
-      img.classList.add("bubble");
-    }
-
   } else {
     vid.src = item.url;
     vid.currentTime = 0;
     vid.muted = true;
     vid.play();
     vid.style.display = "block";
-
-    if (animate) {
-      vid.classList.remove("bubble");
-      void vid.offsetWidth;
-      vid.classList.add("bubble");
-    }
-
     muteBtn.style.display = "block";
-    muteBtn.textContent = "🔇";
   }
 
   document.getElementById("counter").textContent =
@@ -500,72 +427,19 @@ function showItem(index, animate = false) {
 }
 
 /* ------------------ NAVIGAZIONE ------------------ */
-function goPrev() {
-  stopSlideshow();
-  if (currentIndex > 0) {
-      currentIndex--;
-      showItem(currentIndex, false);
-  }
-}
+document.getElementById("prev-btn").onclick = () => {
+  if (currentIndex > 0) showItem(--currentIndex);
+};
 
-function goNext() {
-  stopSlideshow();
-  if (currentIndex < gallery.length - 1) {
-      currentIndex++;
-      showItem(currentIndex, false);
-  }
-}
-
-document.getElementById("prev-btn").onclick = goPrev;
-document.getElementById("next-btn").onclick = goNext;
+document.getElementById("next-btn").onclick = () => {
+  if (currentIndex < gallery.length - 1) showItem(++currentIndex);
+};
 
 /* ------------------ MUTE ------------------ */
 document.getElementById("mute-btn").onclick = () => {
   const vid = document.getElementById("big-video");
   vid.muted = !vid.muted;
   document.getElementById("mute-btn").textContent = vid.muted ? "🔇" : "🔊";
-};
-
-/* ------------------ SLIDESHOW ------------------ */
-function startSlideshow() {
-  slideshowActive = true;
-  document.getElementById("slideshow-btn").textContent = "⏸️";
-
-  if (currentIndex === 0 || currentIndex >= gallery.length - 1) {
-      currentIndex = firstImageIndex;
-      showItem(currentIndex, true);
-  }
-
-  slideshowTimer = setInterval(() => {
-
-    if (gallery[currentIndex].type === "video") {
-        currentIndex = firstImageIndex;
-        showItem(currentIndex, true);
-        return;
-    }
-
-    if (currentIndex < gallery.length - 1) {
-        currentIndex++;
-        showItem(currentIndex, true);
-    } 
-    else {
-        stopSlideshow();
-        currentIndex = firstImageIndex;
-        showItem(currentIndex, false);
-    }
-
-  }, getPause() + transitionTime);
-}
-
-function stopSlideshow() {
-  slideshowActive = false;
-  document.getElementById("slideshow-btn").textContent = "▶️";
-  clearInterval(slideshowTimer);
-}
-
-document.getElementById("slideshow-btn").onclick = () => {
-  if (slideshowActive) stopSlideshow();
-  else startSlideshow();
 };
 
 /* ------------------ FULLSCREEN ------------------ */
