@@ -18,7 +18,7 @@ body {
   overflow: hidden;
 }
 
-/* ------------------ BLOCCO ALTO ------------------ */
+/* ------------------ BLOCCO ALTO (max 50% schermo) ------------------ */
 #big-gallery {
   flex: 0 0 auto;
   max-height: 50vh;
@@ -28,20 +28,21 @@ body {
   border-bottom: 2px solid #222;
 }
 
-/* ------------------ BLOCCO BASSO ------------------ */
+/* ------------------ BLOCCO BASSO (scrollabile) ------------------ */
 #pdf-container {
   flex: 1 1 auto;
   overflow-y: auto;
   padding: 20px;
 }
 
-/* ------------------ SPACER ------------------ */
+/* ------------------ SPACER FINALE ANDROID ------------------ */
 #bottom-spacer {
   height: 120px;
   width: 100%;
   background: black;
 }
 
+/* ------------------ TITOLO ------------------ */
 h1 {
   text-align: center;
   color: red;
@@ -80,13 +81,15 @@ h1 {
   position: relative;
 }
 
-#big-image, #big-video {
+#big-image,
+#big-video {
   max-width: 100%;
   max-height: 100%;
   object-fit: contain;
   display: none;
 }
 
+/* ------------------ FULLSCREEN BUTTON ------------------ */
 #fullscreen-btn {
   position: absolute;
   top: 10px;
@@ -96,6 +99,7 @@ h1 {
   z-index: 20;
 }
 
+/* ------------------ MUTE ICON ------------------ */
 #mute-btn {
   font-size: 38px;
   cursor: pointer;
@@ -105,7 +109,7 @@ h1 {
   padding-right: 20px;
 }
 
-/* ------------------ NAVIGAZIONE ------------------ */
+/* ------------------ FRECCE + PLAY (L4) ------------------ */
 #command-row {
   display: flex;
   justify-content: center;
@@ -115,10 +119,39 @@ h1 {
   font-size: 60px;
 }
 
-#command-row span { cursor: pointer; user-select: none; }
-#slideshow-btn { font-size: 80px; cursor: pointer; }
-#counter { margin-top: 5px; font-size: 20px; color: #ccc; }
-#speed-control { margin-top: 5px; width: 50%; }
+#command-row span {
+  user-select: none;
+  cursor: pointer;
+}
+
+#slideshow-btn {
+  font-size: 80px;
+  cursor: pointer;
+  margin: 0;
+}
+
+/* ------------------ INDICATORE ------------------ */
+#counter {
+  margin-top: 5px;
+  font-size: 20px;
+  color: #ccc;
+}
+
+/* ------------------ SLIDER VELOCITÀ ------------------ */
+#speed-control {
+  margin-top: 5px;
+  width: 50%;
+}
+
+/* ------------------ EFFETTO BOLLA ------------------ */
+.bubble {
+  animation: bubbleZoom 2s cubic-bezier(.34,1.56,.64,1) forwards;
+}
+
+@keyframes bubbleZoom {
+  0%   { opacity: 0; transform: scale(0.3); }
+  100% { opacity: 1; transform: scale(1); }
+}
 
 /* ------------------ CARD ------------------ */
 .card {
@@ -149,6 +182,7 @@ h1 {
   gap: 15px;
 }
 
+/* ------------------ PULSANTI VERDI ------------------ */
 .card button {
   background: green;
   color: white;
@@ -161,39 +195,22 @@ h1 {
   width: 220px;
 }
 
-.card button:hover { background: #0a0; }
-
-/* ------------------ POPUP CARICAMENTO ------------------ */
-#loadingPopup {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: white;
-  padding: 30px 50px;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-  font-size: 28px;
-  font-weight: bold;
-  display: none;
-  z-index: 2000;
-  text-align: center;
-  color: black;
+.card button:hover {
+  background: #0a0;
 }
 
-#loadingPopup span {
-  display: block;
-  margin-top: 15px;
-  font-size: 22px;
+/* Loader */
+.loader {
+  color: white;
+  font-size: 18px;
+  margin-top: 10px;
 }
-
-#testFrame { display: none; }
 </style>
 </head>
 
 <body>
 
-index.html⬅ Torna Indietro</a>
+<a class="back-button" href="index.html">⬅ Torna Indietro</a>
 
 <h1 id="titolo"></h1>
 
@@ -223,61 +240,26 @@ index.html⬅ Torna Indietro</a>
 <div id="pdf-container"></div>
 <div id="bottom-spacer"></div>
 
-<!-- POPUP -->
-<div id="loadingPopup">
-  ⏳ Caricamento del documento...
-  <span id="loadingSub">Attendere qualche secondo</span>
-</div>
-
-<iframe id="testFrame"></iframe>
-
 <script>
 const params = new URLSearchParams(window.location.search);
 const cartella = params.get("cartella");
+
 document.getElementById("titolo").innerHTML =
     "File in: " + cartella + "<br>Galleria + PDF/Immagini/Video";
 
 let gallery = [];
 let currentIndex = 0;
+let firstImageIndex = 0;
 
-/* ---------------------------------------------------------
-   FUNZIONI PDF ORIGINALI
---------------------------------------------------------- */
-function openFast(url) { window.open(url, "_blank"); }
+let slideshowActive = false;
+let slideshowTimer = null;
 
-function openSafe(directUrl, gviewUrl) {
-  const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
-  const newTab = window.open(base + "loading.html", "_blank");
-  if (!newTab) return;
+let transitionTime = 2000;
 
-  showLoading(true, "Caricamento del documento...", "Attendere qualche secondo");
-
-  const frame = document.getElementById("testFrame");
-  frame.src = directUrl;
-
-  setTimeout(() => {
-    let loaded = false;
-    try { loaded = frame.contentWindow.location.href !== "about:blank"; }
-    catch (e) { loaded = false; }
-
-    showLoading(false);
-    newTab.location.href = loaded ? directUrl : gviewUrl;
-
-  }, 5000);
+function getPause() {
+  return document.getElementById("speed-control").value * 500;
 }
 
-function showLoading(show, title="", subtitle="") {
-  const popup = document.getElementById("loadingPopup");
-  const sub = document.getElementById("loadingSub");
-  popup.style.display = show ? "block" : "none";
-
-  if (title) popup.childNodes[0].textContent = "⏳ " + title;
-  if (subtitle) sub.textContent = subtitle;
-}
-
-/* ---------------------------------------------------------
-   CARICAMENTO FILES
---------------------------------------------------------- */
 fetch("elenco.json")
   .then(r => r.json())
   .then(data => {
@@ -293,35 +275,39 @@ fetch("elenco.json")
 
       const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, "/");
       const directUrl = `${base}pdf/${encodedFolder}/${encodedName}`;
-      const gviewUrl = `https://docs.google.com/gview?embedded=1&url=${directUrl}`;
 
       const isPdf = file.toLowerCase().endsWith(".pdf");
       const isImage = imageExt.some(ext => file.toLowerCase().endsWith(ext));
       const isVideo = file.toLowerCase().endsWith(".mp4");
 
-      if (isVideo) videoFound = { type:"video", url:directUrl };
-      if (isImage) gallery.push({ type:"image", url:directUrl });
+      if (isVideo) videoFound = { type: "video", url: directUrl };
+      if (isImage) gallery.push({ type: "image", url: directUrl });
 
       const card = document.createElement("div");
       card.className = "card";
 
-      /* PREVIEW */
       let previewHtml = "";
       if (isImage)
-        previewHtml = `<img class="preview" src="${directdeo)
-        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png" onclick="showItem(${galleryw" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" onclick="opens = "";
+        previewHtml = `<img class="preview" src="${directUrl}" onclick="openFromThumbnail('${directUrl}')">`;
+      else if (isVideo)
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png" onclick="openFromThumbnail('${directUrl}')">`;
+      else
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" onclick="openFromThumbnail('${directUrl}')">`;
+
+      /* ------------------ PULSANTI PER TIPO ------------------ */
+      let buttons = "";
 
       if (isImage) {
-        buttons = `<button onclick="showItem(${gallery.length - 1})">Apri Immagine</button>`;
+        buttons = `<button onclick="window.open('${directUrl}')">Visualizza immagine</button>`;
       }
       else if (isPdf) {
         buttons = `
-          <button onclick="openFast('${directUrl}')">Apri / Scarica</button>
-          <button onclick="openSafe('${directUrl}', '${gviewUrl}')">Vedi Online</button>
+          <button onclick="window.open('${directUrl}')">Apri / Scarica</button>
+          <button onclick="openPdfSafe('${directUrl}')">Vedi Online</button>
         `;
       }
       else if (isVideo) {
-        buttons = `<button onclick="showItem(${gallery.length})">Apri Video</button>`;
+        buttons = `<button onclick="window.open('${directUrl}')">Apri / Scarica</button>`;
       }
 
       card.innerHTML = `
@@ -335,13 +321,36 @@ fetch("elenco.json")
 
     if (videoFound) gallery.unshift(videoFound);
 
-    showItem(0);
+    firstImageIndex = (gallery[0].type === "video") ? 1 : 0;
+
+    showItem(0, false);
   });
 
-/* ---------------------------------------------------------
-   VIEWER
---------------------------------------------------------- */
-function showItem(index) {
+/* ------------------ MINIATURA → VIEWER ------------------ */
+function openFromThumbnail(url) {
+  const index = gallery.findIndex(item => item.url === url);
+  if (index !== -1) {
+    stopSlideshow();
+    showItem(index, false);
+  }
+}
+
+/* ------------------ PDF VIEWER SICURO (T3 = 7s) ------------------ */
+function openPdfSafe(url) {
+
+  let loader = document.createElement("div");
+  loader.className = "loader";
+  loader.innerText = "Apertura sicura PDF...";
+  document.body.appendChild(loader);
+
+  setTimeout(() => {
+    loader.remove();
+    window.open(url, "_blank");
+  }, 7000); // T3 = 7 secondi
+}
+
+/* ------------------ MOSTRA ELEMENTO ------------------ */
+function showItem(index, animate = false) {
   currentIndex = index;
 
   const item = gallery[index];
@@ -353,64 +362,114 @@ function showItem(index) {
   vid.style.display = "none";
   muteBtn.style.display = "none";
 
+  img.classList.remove("bubble");
+  vid.classList.remove("bubble");
+
   if (item.type === "image") {
     img.src = item.url;
     img.style.display = "block";
+
+    if (animate) {
+      img.classList.remove("bubble");
+      void img.offsetWidth;
+      img.classList.add("bubble");
+    }
+
   } else {
     vid.src = item.url;
     vid.currentTime = 0;
     vid.muted = true;
     vid.play();
     vid.style.display = "block";
+
+    if (animate) {
+      vid.classList.remove("bubble");
+      void vid.offsetWidth;
+      vid.classList.add("bubble");
+    }
+
     muteBtn.style.display = "block";
+    muteBtn.textContent = "🔇";
   }
 
   document.getElementById("counter").textContent =
-      `${index + 1} / ${gallery.length}`;
+      `${index} / ${gallery.length - 1}`;
 }
 
-/* NAVIGAZIONE */
-document.getElementById("prev-btn").onclick = () => {
-  if (currentIndex > 0) showItem(--currentIndex);
-};
-document.getElementById("next-btn").onclick = () => {
-  if (currentIndex < gallery.length - 1) showItem(++currentIndex);
-};
+/* ------------------ NAVIGAZIONE ------------------ */
+function goPrev() {
+  stopSlideshow();
+  if (currentIndex > 0) {
+      currentIndex--;
+      showItem(currentIndex, false);
+  }
+}
 
-/* MUTE */
+function goNext() {
+  stopSlideshow();
+  if (currentIndex < gallery.length - 1) {
+      currentIndex++;
+      showItem(currentIndex, false);
+  }
+}
+
+document.getElementById("prev-btn").onclick = goPrev;
+document.getElementById("next-btn").onclick = goNext;
+
+/* ------------------ MUTE ------------------ */
 document.getElementById("mute-btn").onclick = () => {
   const vid = document.getElementById("big-video");
   vid.muted = !vid.muted;
   document.getElementById("mute-btn").textContent = vid.muted ? "🔇" : "🔊";
 };
 
-/* FULLSCREEN */
+/* ------------------ SLIDESHOW ------------------ */
+function startSlideshow() {
+  slideshowActive = true;
+  document.getElementById("slideshow-btn").textContent = "⏸️";
+
+  if (currentIndex === 0 || currentIndex >= gallery.length - 1) {
+      currentIndex = firstImageIndex;
+      showItem(currentIndex, true);
+  }
+
+  slideshowTimer = setInterval(() => {
+
+    if (gallery[currentIndex].type === "video") {
+        currentIndex = firstImageIndex;
+        showItem(currentIndex, true);
+        return;
+    }
+
+    if (currentIndex < gallery.length - 1) {
+        currentIndex++;
+        showItem(currentIndex, true);
+    } 
+    else {
+        stopSlideshow();
+        currentIndex = firstImageIndex;
+        showItem(currentIndex, false);
+    }
+
+  }, getPause() + transitionTime);
+}
+
+function stopSlideshow() {
+  slideshowActive = false;
+  document.getElementById("slideshow-btn").textContent = "▶️";
+  clearInterval(slideshowTimer);
+}
+
+document.getElementById("slideshow-btn").onclick = () => {
+  if (slideshowActive) stopSlideshow();
+  else startSlideshow();
+};
+
+/* ------------------ FULLSCREEN ------------------ */
 document.getElementById("fullscreen-btn").onclick = () => {
   const elem = document.getElementById("big-gallery");
   if (!document.fullscreenElement) elem.requestFullscreen();
   else document.exitFullscreen();
-};
-
-/* SLIDESHOW */
-let slideshowInterval = null;
-document.getElementById("slideshow-btn").onclick = () => {
-  if (slideshowInterval) {
-    clearInterval(slideshowInterval);
-    slideshowInterval = null;
-    document.getElementById("slideshow-btn").textContent = "▶️";
-    return;
-  }
-
-  document.getElementById("slideshow-btn").textContent = "⏸️";
-  const speed = document.getElementById("speed-control").value * 1000;
-
-  slideshowInterval = setInterval(() => {
-    if (currentIndex < gallery.length - 1) {
-      showItem(++currentIndex);
-    } else {
-      showItem(0);
-    }
-  }, speed);
 };
 </script>
 
