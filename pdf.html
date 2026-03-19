@@ -24,7 +24,7 @@ body {
   max-height: 50vh;
   overflow: hidden;
   background: black;
-  padding: 15px 0;
+  padding: 10px 0;
   border-bottom: 2px solid #222;
 }
 
@@ -37,7 +37,7 @@ body {
 
 /* ------------------ SPACER FINALE ANDROID ------------------ */
 #bottom-spacer {
-  height: 80px;
+  height: 120px;
   width: 100%;
   background: black;
 }
@@ -47,7 +47,7 @@ h1 {
   text-align: center;
   color: red;
   font-size: 26px;
-  margin: 10px 0 20px 0;
+  margin: 10px 0 15px 0;
 }
 
 /* ------------------ TORNA INDIETRO ------------------ */
@@ -71,7 +71,7 @@ h1 {
   width: 100%;
   max-width: 1100px;
   margin: 0 auto;
-  height: calc(50vh - 200px);
+  height: calc(50vh - 180px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -103,44 +103,44 @@ h1 {
 #mute-btn {
   font-size: 38px;
   cursor: pointer;
-  margin-top: 10px;
+  margin-top: 5px;
   display: none;
   text-align: right;
   padding-right: 20px;
 }
 
-/* ------------------ FRECCE ------------------ */
-#nav-buttons {
-  margin-top: 10px;
-  font-size: 50px;
+/* ------------------ FRECCE + PLAY (L4) ------------------ */
+#command-row {
   display: flex;
   justify-content: center;
-  gap: 80px;
+  align-items: center;
+  gap: 60px;
+  margin-top: 5px;
+  font-size: 60px;
+}
+
+#command-row span {
+  user-select: none;
   cursor: pointer;
 }
 
-#nav-buttons span {
-  user-select: none;
+#slideshow-btn {
+  font-size: 80px;
+  cursor: pointer;
+  margin: 0;
 }
 
 /* ------------------ INDICATORE ------------------ */
 #counter {
   margin-top: 5px;
-  font-size: 22px;
+  font-size: 20px;
   color: #ccc;
-}
-
-/* ------------------ SLIDESHOW BUTTON ------------------ */
-#slideshow-btn {
-  margin-top: 10px;
-  font-size: 70px;
-  cursor: pointer;
 }
 
 /* ------------------ SLIDER VELOCITÀ ------------------ */
 #speed-control {
-  margin-top: 10px;
-  width: 60%;
+  margin-top: 5px;
+  width: 50%;
 }
 
 /* ------------------ EFFETTO BOLLA ------------------ */
@@ -225,12 +225,11 @@ h1 {
 
     <div id="mute-btn">🔇</div>
 
-    <div id="nav-buttons">
+    <div id="command-row">
         <span id="prev-btn">⬅️</span>
+        <span id="slideshow-btn">▶️</span>
         <span id="next-btn">➡️</span>
     </div>
-
-    <div id="slideshow-btn">▶️</div>
 
     <input id="speed-control" type="range" min="1" max="8" value="2">
 
