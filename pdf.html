@@ -294,10 +294,21 @@ fetch("elenco.json")
       else
         previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" onclick="openFromThumbnail('${directUrl}')">`;
 
-      let buttons = `
-        <button onclick="window.open('${directUrl}')">Apri / Scarica</button>
-        <button onclick="openOnline('${directUrl}', '${file}')">Vedi Online</button>
-      `;
+      /* ------------------ PULSANTI PER TIPO ------------------ */
+      let buttons = "";
+
+      if (isImage) {
+        buttons = `<button onclick="window.open('${directUrl}')">Visualizza immagine</button>`;
+      }
+      else if (isPdf) {
+        buttons = `
+          <button onclick="window.open('${directUrl}')">Apri / Scarica</button>
+          <button onclick="openPdfSafe('${directUrl}')">Vedi Online</button>
+        `;
+      }
+      else if (isVideo) {
+        buttons = `<button onclick="window.open('${directUrl}')">Apri / Scarica</button>`;
+      }
 
       card.innerHTML = `
         ${previewHtml}
@@ -324,17 +335,18 @@ function openFromThumbnail(url) {
   }
 }
 
-/* ------------------ VEDI ONLINE ------------------ */
-function openOnline(url, filename) {
+/* ------------------ PDF VIEWER SICURO (T3 = 7s) ------------------ */
+function openPdfSafe(url) {
+
   let loader = document.createElement("div");
   loader.className = "loader";
-  loader.innerText = "Caricamento in corso...";
+  loader.innerText = "Apertura sicura PDF...";
   document.body.appendChild(loader);
 
   setTimeout(() => {
     loader.remove();
     window.open(url, "_blank");
-  }, 800);
+  }, 7000); // T3 = 7 secondi
 }
 
 /* ------------------ MOSTRA ELEMENTO ------------------ */
