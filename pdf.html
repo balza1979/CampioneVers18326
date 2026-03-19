@@ -272,7 +272,7 @@ fetch("elenco.json")
 
     firstImageIndex = (gallery[0].type === "video") ? 1 : 0;
 
-    showItem(0, false); // se c’è video → mostra video, se no → prima immagine
+    showItem(0, false); // MOSTRA VIDEO SE ESISTE
   });
 
 /* ------------------ MOSTRA ELEMENTO ------------------ */
@@ -325,15 +325,19 @@ function showItem(index, animate = false) {
 /* ------------------ NAVIGAZIONE ------------------ */
 function goPrev() {
   stopSlideshow();
-  currentIndex = Math.max(firstImageIndex, currentIndex - 1);
-  showItem(currentIndex, false);
+
+  if (currentIndex > 0) {
+      currentIndex--;
+      showItem(currentIndex, false);
+  }
 }
 
 function goNext() {
   stopSlideshow();
+
   if (currentIndex < gallery.length - 1) {
-    currentIndex++;
-    showItem(currentIndex, false);
+      currentIndex++;
+      showItem(currentIndex, false);
   }
 }
 
