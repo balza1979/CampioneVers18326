@@ -212,14 +212,15 @@ document.getElementById("titolo").innerHTML =
 
 let gallery = [];
 let currentIndex = 0;
+let firstImageIndex = 0;
 
 let slideshowActive = false;
 let slideshowTimer = null;
 
 let transitionTime = 2000; // 2 secondi
-// slider 1 → 0.5s, slider 8 → 4s
+
 function getPause() {
-  return document.getElementById("speed-control").value * 500;
+  return document.getElementById("speed-control").value * 500; // 0.5s → 4s
 }
 
 fetch("elenco.json")
@@ -269,7 +270,9 @@ fetch("elenco.json")
 
     if (videoFound) gallery.unshift(videoFound);
 
-    showItem(0);
+    firstImageIndex = (gallery[0].type === "video") ? 1 : 0;
+
+    showItem(firstImageIndex, false);
   });
 
 /* ------------------ MOSTRA ELEMENTO ------------------ */
@@ -322,7 +325,7 @@ function showItem(index, animate = false) {
 /* ------------------ NAVIGAZIONE ------------------ */
 function goPrev() {
   stopSlideshow();
-  currentIndex = Math.max(0, currentIndex - 1);
+  currentIndex = Math.max(firstImageIndex, currentIndex - 1);
   showItem(currentIndex, false);
 }
 
@@ -349,21 +352,27 @@ function startSlideshow() {
   slideshowActive = true;
   document.getElementById("slideshow-btn").textContent = "⏸️";
 
+  if (currentIndex === 0 || currentIndex >= gallery.length - 1) {
+      currentIndex = firstImageIndex;
+      showItem(currentIndex, true);
+  }
+
   slideshowTimer = setInterval(() => {
 
-    if (currentIndex === 0) {
-      currentIndex = 1;
-      showItem(currentIndex, true);
-      return;
+    if (gallery[currentIndex].type === "video") {
+        currentIndex = firstImageIndex;
+        showItem(currentIndex, true);
+        return;
     }
 
     if (currentIndex < gallery.length - 1) {
-      currentIndex++;
-      showItem(currentIndex, true);
-    } else {
-      stopSlideshow();
-      currentIndex = 1;
-      showItem(currentIndex, false);
+        currentIndex++;
+        showItem(currentIndex, true);
+    } 
+    else {
+        stopSlideshow();
+        currentIndex = firstImageIndex;
+        showItem(currentIndex, false);
     }
 
   }, getPause() + transitionTime);
