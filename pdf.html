@@ -131,7 +131,7 @@ h1 {
 
 /* ------------------ CARD SOTTO ------------------ */
 .card {
-  background: grey;
+  background: #444;
   padding: 20px;
   margin: 15px auto;
   max-width: 850px;
@@ -158,7 +158,7 @@ h1 {
 }
 
 .card button {
-  background: green;
+  background: #666;
   color: white;
   border: none;
   padding: 16px 28px;
@@ -167,6 +167,17 @@ h1 {
   font-size: 22px;
   font-weight: 700;
   width: 220px;
+}
+
+.card button:hover {
+  background: #777;
+}
+
+/* Loader */
+.loader {
+  color: white;
+  font-size: 18px;
+  margin-top: 10px;
 }
 </style>
 </head>
@@ -254,10 +265,11 @@ fetch("elenco.json")
       else if (isVideo) previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png">`;
       else previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg">`;
 
-      let buttons = "";
-      if (isPdf) buttons = `<button onclick="window.open('${directUrl}')">Vedi/Scarica</button>`;
-      else if (isImage) buttons = `<button onclick="window.open('${directUrl}')">Apri Immagine</button>`;
-      else if (isVideo) buttons = `<button onclick="window.open('${directUrl}')">Apri Video</button>`;
+      /* ------------------ PULSANTI ------------------ */
+      let buttons = `
+        <button onclick="window.open('${directUrl}')">Apri / Scarica</button>
+        <button onclick="openOnline('${directUrl}', '${file}')">Vedi Online</button>
+      `;
 
       card.innerHTML = `
         ${previewHtml}
@@ -274,6 +286,31 @@ fetch("elenco.json")
 
     showItem(0, false); // MOSTRA VIDEO SE ESISTE
   });
+
+/* ------------------ FUNZIONE VEDI ONLINE ------------------ */
+function openOnline(url, filename) {
+  const ext = filename.toLowerCase();
+
+  let loader = document.createElement("div");
+  loader.className = "loader";
+  loader.innerText = "Caricamento in corso...";
+  document.body.appendChild(loader);
+
+  setTimeout(() => {
+    loader.remove();
+
+    if (ext.endsWith(".pdf")) {
+      window.open(url, "_blank");
+    }
+    else if (ext.endsWith(".mp4")) {
+      window.open(url, "_blank");
+    }
+    else {
+      window.open(url, "_blank");
+    }
+
+  }, 800);
+}
 
 /* ------------------ MOSTRA ELEMENTO ------------------ */
 function showItem(index, animate = false) {
