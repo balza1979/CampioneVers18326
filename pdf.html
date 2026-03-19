@@ -199,11 +199,54 @@ h1 {
   background: #0a0;
 }
 
-/* Loader */
-.loader {
+/* ------------------ LOADER OVERLAY (LDR-A) ------------------ */
+#loader-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.75);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  z-index: 99999;
+}
+
+.loader-circle {
+  border: 8px solid #444;
+  border-top: 8px solid #fff;
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loader-text {
+  margin-top: 20px;
+  font-size: 22px;
   color: white;
-  font-size: 18px;
-  margin-top: 10px;
+}
+
+/* ------------------ ERRORE (ERR-A) ------------------ */
+#error-box {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #900;
+  padding: 20px 30px;
+  border-radius: 10px;
+  color: white;
+  font-size: 22px;
+  display: none;
+  z-index: 100000;
 }
 </style>
 </head>
@@ -213,6 +256,15 @@ h1 {
 <a class="back-button" href="index.html">⬅ Torna Indietro</a>
 
 <h1 id="titolo"></h1>
+
+<!-- LOADER OVERLAY -->
+<div id="loader-overlay">
+  <div class="loader-circle"></div>
+  <div class="loader-text">Caricamento in corso…</div>
+</div>
+
+<!-- ERRORE -->
+<div id="error-box">Caricamento non riuscito. Riprovare.</div>
 
 <!-- ------------------ BLOCCO ALTO ------------------ -->
 <div id="big-gallery">
@@ -260,6 +312,23 @@ function getPause() {
   return document.getElementById("speed-control").value * 500;
 }
 
+/* ------------------ LOADER ------------------ */
+function showLoader() {
+  document.getElementById("loader-overlay").style.display = "flex";
+}
+
+function hideLoader() {
+  document.getElementById("loader-overlay").style.display = "none";
+}
+
+/* ------------------ ERRORE ------------------ */
+function showError() {
+  const box = document.getElementById("error-box");
+  box.style.display = "block";
+  setTimeout(() => box.style.display = "none", 3000);
+}
+
+/* ------------------ FETCH FILES ------------------ */
 fetch("elenco.json")
   .then(r => r.json())
   .then(data => {
@@ -302,12 +371,12 @@ fetch("elenco.json")
       }
       else if (isPdf) {
         buttons = `
-          <button onclick="window.open('${directUrl}')">Apri / Scarica</button>
+          <button onclick="window.location.href='${directUrl}'">Apri / Scarica</button>
           <button onclick="openPdfSafe('${directUrl}')">Vedi Online</button>
         `;
       }
       else if (isVideo) {
-        buttons = `<button onclick="window.open('${directUrl}')">Apri / Scarica</button>`;
+        buttons = `<button onclick="openVideo('${directUrl}')">Apri</button>`;
       }
 
       card.innerHTML = `
@@ -326,6 +395,54 @@ fetch("elenco.json")
     showItem(0, false);
   });
 
+/* ------------------ VIDEO APERTURA IMMEDIATA ------------------ */
+function openVideo(url) {
+  window.location.href = url;
+}
+
+/* ------------------ PDF VIEWER SICURO COMPLETO ------------------ */
+function openPdfSafe(url) {
+
+  showLoader();
+
+  let opened = false;
+
+  // 1) Primo tentativo immediato
+  try {
+    const win = window.open(url, "_blank");
+    if (win) opened = true;
+  } catch(e){}
+
+  // 2) Dopo 7 secondi → secondo tentativo
+  setTimeout(() => {
+    if (!opened) {
+      try {
+        window.location.href = url;
+        opened = true;
+      } catch(e){}
+    }
+  }, 7000);
+
+  // 3) Dopo 9 secondi → iframe invisibile
+  setTimeout(() => {
+    if (!opened) {
+      try {
+        const iframe = document.createElement("iframe");
+        iframe.style.display = "none";
+        iframe.src = url;
+        document.body.appendChild(iframe);
+        opened = true;
+      } catch(e){}
+    }
+  }, 9000);
+
+  // 4) Dopo 11 secondi → errore
+  setTimeout(() => {
+    hideLoader();
+    if (!opened) showError();
+  }, 11000);
+}
+
 /* ------------------ MINIATURA → VIEWER ------------------ */
 function openFromThumbnail(url) {
   const index = gallery.findIndex(item => item.url === url);
@@ -333,20 +450,6 @@ function openFromThumbnail(url) {
     stopSlideshow();
     showItem(index, false);
   }
-}
-
-/* ------------------ PDF VIEWER SICURO (T3 = 7s) ------------------ */
-function openPdfSafe(url) {
-
-  let loader = document.createElement("div");
-  loader.className = "loader";
-  loader.innerText = "Apertura sicura PDF...";
-  document.body.appendChild(loader);
-
-  setTimeout(() => {
-    loader.remove();
-    window.open(url, "_blank");
-  }, 7000); // T3 = 7 secondi
 }
 
 /* ------------------ MOSTRA ELEMENTO ------------------ */
