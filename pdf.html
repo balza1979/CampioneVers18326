@@ -8,7 +8,8 @@
 body {
   font-family: Arial;
   background: black;
-  padding: 40px;
+  padding: 0;
+  margin: 0;
   color: white;
 }
 
@@ -17,7 +18,7 @@ h1 {
   text-align: center;
   color: red;
   font-size: 26px;
-  margin-bottom: 40px;
+  margin: 20px 0;
 }
 
 /* ------------------ TORNA INDIETRO ------------------ */
@@ -36,17 +37,22 @@ h1 {
     z-index: 999;
 }
 
-/* ------------------ GALLERIA GRANDE ------------------ */
+/* ------------------ BLOCCO SUPERIORE FISSO ------------------ */
 #big-gallery {
-  width: 100%;
-  max-width: 1100px;
-  margin: 0 auto 40px auto;
-  text-align: center;
-  position: relative;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: black;
+  padding-bottom: 20px;
+  padding-top: 20px;
+  border-bottom: 2px solid #222;
 }
 
+/* ------------------ VIEWER ------------------ */
 #viewer-container {
   width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
   max-height: 70vh;
   display: flex;
   justify-content: center;
@@ -85,7 +91,7 @@ h1 {
   padding-right: 20px;
 }
 
-/* ------------------ FRECCE GRANDI ------------------ */
+/* ------------------ FRECCE ------------------ */
 #nav-buttons {
   margin-top: 20px;
   font-size: 60px;
@@ -119,7 +125,7 @@ h1 {
   width: 60%;
 }
 
-/* ------------------ EFFETTO BOLLA Z3 + EASING B2 ------------------ */
+/* ------------------ EFFETTO BOLLA ------------------ */
 .bubble {
   animation: bubbleZoom 2s cubic-bezier(.34,1.56,.64,1) forwards;
 }
@@ -129,7 +135,13 @@ h1 {
   100% { opacity: 1; transform: scale(1); }
 }
 
-/* ------------------ CARD SOTTO ------------------ */
+/* ------------------ LISTA FILE ------------------ */
+#pdf-container {
+  padding: 20px;
+  margin-top: 20px;
+}
+
+/* ------------------ CARD ------------------ */
 .card {
   background: #444;
   padding: 20px;
@@ -149,6 +161,7 @@ h1 {
   border-radius: 8px;
   border: 2px solid black;
   background: white;
+  cursor: pointer;
 }
 
 .button-column {
@@ -157,8 +170,9 @@ h1 {
   gap: 15px;
 }
 
+/* ------------------ PULSANTI VERDI ------------------ */
 .card button {
-  background: #666;
+  background: green;
   color: white;
   border: none;
   padding: 16px 28px;
@@ -170,7 +184,7 @@ h1 {
 }
 
 .card button:hover {
-  background: #777;
+  background: #0a0;
 }
 
 /* Loader */
@@ -188,7 +202,7 @@ h1 {
 
 <h1 id="titolo"></h1>
 
-<!-- ------------------ GALLERIA GRANDE ------------------ -->
+<!-- ------------------ BLOCCO SUPERIORE FISSO ------------------ -->
 <div id="big-gallery">
 
     <div id="viewer-container">
@@ -211,7 +225,7 @@ h1 {
     <div id="counter">0 / 0</div>
 </div>
 
-<!-- ------------------ LISTA FILE SOTTO ------------------ -->
+<!-- ------------------ LISTA FILE ------------------ -->
 <div id="pdf-container"></div>
 
 <script>
@@ -228,10 +242,10 @@ let firstImageIndex = 0;
 let slideshowActive = false;
 let slideshowTimer = null;
 
-let transitionTime = 2000; // 2 secondi
+let transitionTime = 2000;
 
 function getPause() {
-  return document.getElementById("speed-control").value * 500; // 0.5s → 4s
+  return document.getElementById("speed-control").value * 500;
 }
 
 fetch("elenco.json")
@@ -261,11 +275,13 @@ fetch("elenco.json")
       card.className = "card";
 
       let previewHtml = "";
-      if (isImage) previewHtml = `<img class="preview" src="${directUrl}">`;
-      else if (isVideo) previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png">`;
-      else previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg">`;
+      if (isImage)
+        previewHtml = `<img class="preview" src="${directUrl}" onclick="openFromThumbnail('${directUrl}')">`;
+      else if (isVideo)
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/7/75/Video_icon.png" onclick="openFromThumbnail('${directUrl}')">`;
+      else
+        previewHtml = `<img class="preview" src="https://upload.wikimedia.org/wikipedia/commons/8/87/PDF_file_icon.svg" onclick="openFromThumbnail('${directUrl}')">`;
 
-      /* ------------------ PULSANTI ------------------ */
       let buttons = `
         <button onclick="window.open('${directUrl}')">Apri / Scarica</button>
         <button onclick="openOnline('${directUrl}', '${file}')">Vedi Online</button>
@@ -284,10 +300,19 @@ fetch("elenco.json")
 
     firstImageIndex = (gallery[0].type === "video") ? 1 : 0;
 
-    showItem(0, false); // MOSTRA VIDEO SE ESISTE
+    showItem(0, false);
   });
 
-/* ------------------ FUNZIONE VEDI ONLINE ------------------ */
+/* ------------------ MINIATURA → VIEWER ------------------ */
+function openFromThumbnail(url) {
+  const index = gallery.findIndex(item => item.url === url);
+  if (index !== -1) {
+    stopSlideshow();
+    showItem(index, false);
+  }
+}
+
+/* ------------------ VEDI ONLINE ------------------ */
 function openOnline(url, filename) {
   const ext = filename.toLowerCase();
 
@@ -298,17 +323,7 @@ function openOnline(url, filename) {
 
   setTimeout(() => {
     loader.remove();
-
-    if (ext.endsWith(".pdf")) {
-      window.open(url, "_blank");
-    }
-    else if (ext.endsWith(".mp4")) {
-      window.open(url, "_blank");
-    }
-    else {
-      window.open(url, "_blank");
-    }
-
+    window.open(url, "_blank");
   }, 800);
 }
 
@@ -362,7 +377,6 @@ function showItem(index, animate = false) {
 /* ------------------ NAVIGAZIONE ------------------ */
 function goPrev() {
   stopSlideshow();
-
   if (currentIndex > 0) {
       currentIndex--;
       showItem(currentIndex, false);
@@ -371,7 +385,6 @@ function goPrev() {
 
 function goNext() {
   stopSlideshow();
-
   if (currentIndex < gallery.length - 1) {
       currentIndex++;
       showItem(currentIndex, false);
